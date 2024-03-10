@@ -1,9 +1,13 @@
 /********************** SHIFFMAN CODE ********************************/
 
 import shiffman.box2d.*;
+import org.jbox2d.common.*;
+import org.jbox2d.dynamics.joints.*;
 import org.jbox2d.collision.shapes.*;
+import org.jbox2d.collision.shapes.Shape;
 import org.jbox2d.common.*;
 import org.jbox2d.dynamics.*;
+import org.jbox2d.dynamics.contacts.*;
 
 // A reference to our box2d world
 Box2DProcessing box2d;
@@ -29,6 +33,7 @@ final float w = 0.05;  // gun rotation speed
 final float powerStep = 1;  // power modification scale
 float modPower = 0f;
 PVector nCrosshair;
+boolean modMass;
 
 /*************************** SYSTEM FUNCTIONS *******************************/
 
@@ -81,13 +86,7 @@ void draw() {
   }
   
   // Boxes that leave the screen, we delete them
-  // (note they have to be deleted from both the box2d world and our list
-  for (int i = boxes.size()-1; i >= 0; i--) {
-    Box b = boxes.get(i);
-    if (b.done()) {
-      boxes.remove(i);
-    }
-  }
+  removeLostBoxes();
 }
 
 void keyPressed() {
@@ -112,6 +111,10 @@ void keyPressed() {
   if(keyCode == _scaleDown) {
     modPower = -1f;
   }
+
+  if (key == 'm' || key == 'M') {
+    modMass = true;
+  }
 }
 
 void keyReleased() {
@@ -129,6 +132,24 @@ void keyReleased() {
   }
 }
 
+void beginContact(Contact cp) {
+
+  // dohvati objekte u koliziji
+  Object o1 = cp.getFixtureA().getBody().getUserData();
+  Object o2 = cp.getFixtureB().getBody().getUserData();
+
+  if(o1.getClass() == Box.class) {
+    ((Box)o1).delete = true;
+  }
+  if(o2.getClass() == Box.class) {
+    ((Box)o2).delete = true;
+  }
+}
+
+void endContact(Contact cp) {
+
+}
+
 /*************************** HELP FUNCTIONS *******************************/
 
 void createWorld() {
@@ -138,6 +159,7 @@ void createWorld() {
   box2d.createWorld();
   // We are setting a custom gravity
   box2d.setGravity(0, -10);
+  box2d.listenForCollisions();
 }
 
 // just a box for now
@@ -146,6 +168,17 @@ void createTestFloor() {
   boundaries = new ArrayList<Boundary>();
   // Add a bunch of fixed boundaries
   boundaries.add(new Boundary(width/2, height-50, width, 10));
+}
+
+void removeLostBoxes() {
+
+  // (note they have to be eed from both the box2d world and our list
+  for (int i = boxes.size()-1; i >= 0; i--) {
+    Box b = boxes.get(i);
+    if (b.done()) {
+      boxes.remove(i);
+    }
+  }
 }
 
 // draws the gun

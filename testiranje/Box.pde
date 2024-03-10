@@ -5,6 +5,7 @@ class Box {
   Body body;
   float w;
   float h;
+  boolean delete = false;
 
   // Constructor
   Box(float x, float y) {
@@ -12,6 +13,7 @@ class Box {
     h = 4;
     // Add the box to the box2d world
     makeBody(new Vec2(x, y), w, h);
+    body.setUserData(this); // vidi u Box2D_notes.md
   }
 
   // This function removes the particle from the box2d world
@@ -24,7 +26,7 @@ class Box {
     // Let's find the screen position of the particle
     Vec2 pos = box2d.getBodyPixelCoord(body);
     // Is it off the bottom of the screen?
-    if (pos.y > height + 10 || pos.x > width + 10) {
+    if (pos.y > height + 10 || pos.x > width + 10 || delete) {
       killBody();
       return true;
     }
@@ -74,7 +76,7 @@ class Box {
     body.createFixture(fd);
 
     // Give it some initial random velocity
-    body.setLinearVelocity(crosshair);
+    body.setLinearVelocity(crosshair);  // where user is aiming at the moment
     body.setAngularVelocity(0);
   }
 }

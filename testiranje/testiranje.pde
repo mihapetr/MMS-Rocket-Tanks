@@ -35,6 +35,8 @@ float modPower = 0f;
 PVector nCrosshair;
 boolean modMass;
 
+SPG tank;
+
 /*************************** SYSTEM FUNCTIONS *******************************/
 
 void setup() {
@@ -51,11 +53,24 @@ void setup() {
 
   // ground generation
   createTestFloor();
+
+  // defining a new SPG
+  DefSPG def = new DefSPG();
+  def.colour = new PVector(0,50,0);
+  def.name = "Pero";
+  def.startPos = new PVector(50,50);
+  def.hull_svg = loadShape("hull.svg");
+  def.gun_svg = loadShape("gun.svg");
+
+  // creating a new SPG
+  tank = new SPG(def);
 }
 
 void draw() {
 
   background(255);
+
+  tank.display();
 
   myRotate(crosshair, rotateGun * w);
   nCrosshair = new PVector(crosshair.x, crosshair.y);

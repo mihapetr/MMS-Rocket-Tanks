@@ -26,3 +26,6 @@ Koordinate svijeta ne odgovaraju koordinatama ekrana pa se koristi `coordPixelsT
 
 # Collisions
 Za slušanje kolizija se brine Box2D. Svaka kolizija se obrađuje u metodama `void beginContact(Contact cp)` i `void endContact(Contact cp)`. Kod kreiranja svijeta se poziva `box2d.listenForCollisions()`.
+
+# Edge Shapes
+Za konstrukciju terena koristit ćemo `EdgeShape` i `ChainShape` klase.

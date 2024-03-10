@@ -42,3 +42,17 @@ Zadaci posloženi po prioritetu:
 
 # Potrebne biblioteke
 Plan je koristiti biblioteku [Box2D for Processing](https://github.com/shiffman/Box2D-for-Processing) u svrhu simulacije fizike.
+
+# Klase
+Trenutni plan hijerarhije klasa.
+* `SPG` (self propelled gun)
+    * ima `Gun`
+        * karakteritike :
+            * `angle`
+            * `power`
+    * ima `Hull`
+        * ima `Body`
+    * karakteristike :
+        * `position`
+        * `score`
+* `Projectile`

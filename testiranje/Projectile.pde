@@ -1,5 +1,5 @@
 // A rectangular box
-class Box {
+class Projectile {
 
   // We need to keep track of a Body and a width and height
   Body body;
@@ -8,7 +8,7 @@ class Box {
   boolean delete = false;
 
   // Constructor
-  Box(float x, float y) {
+  Projectile(float x, float y) {
     w = 4;
     h = 4;
     // Add the box to the box2d world
@@ -44,9 +44,9 @@ class Box {
     pushMatrix();
     translate(pos.x, pos.y);
     rotate(-a);
-    fill(175);
+    fill(0);
     stroke(0);
-    rect(0, 0, w, h);
+    ellipse(0, 0, w, h);
     popMatrix();
   }
 
@@ -76,7 +76,7 @@ class Box {
     body.createFixture(fd);
 
     // Give it some initial random velocity
-    body.setLinearVelocity(crosshair);  // where user is aiming at the moment
+    //body.setLinearVelocity(crosshair);  // where user is aiming at the moment
     body.setAngularVelocity(0);
   }
 }

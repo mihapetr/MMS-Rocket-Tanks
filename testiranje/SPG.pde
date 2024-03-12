@@ -5,14 +5,17 @@ class SPG {
 	PVector colour;                  // display color
   String name;                    // player name
   PVector startPos;               // pos in screen coordinates
-  PShape hull_svg;    // svg of the hull
-	PShape hull_path;
+  PShape tank_svg;              // svg of the whole tank
+	PShape hull_path;             // child of PShape containing a path for the collision box
+  PShape tank_image;
 
 	// components
 	Gun gun;
+  // Projectile p;
 
 	// Box2D components
 	Body body;
+  float topSpeed = 10;
 
 	SPG(DefSPG def) {
 
@@ -20,14 +23,29 @@ class SPG {
 		colour = def.colour;
 		name = def.name;
 		startPos = def.startPos;
-		hull_svg = def.hull_svg;
-		gun = new Gun();
-		gun.gun_svg = def.gun_svg;
-		hull_path = hull_svg.getChild("hull_path");
+		tank_svg = def.tank_svg;
+    hull_path = tank_svg.getChild("hull_path");
 
+		gun = new Gun(this);
+		
 		makeBody();
 		body.setUserData(this);
 	}
+
+  // direction is -1f for left and 1f for right
+  // this can be optimized for better realism
+  void move() {
+
+    //if(moveDir == 0f) body.setLinearVelocity(new Vec2(0,0));
+    if(body.getLinearVelocity().length() > topSpeed) return;
+
+    float a = body.getAngle();
+    PVector right = new PVector(1000, 0);
+    right.rotate(a);
+    Vec2 r = new Vec2(right.x * moveDir, right.y);
+
+    body.applyForceToCenter(r);
+  }
 
 	void makeBody() {
 
@@ -37,7 +55,7 @@ class SPG {
     PolygonShape sd = new PolygonShape();
 
 		// setting the collision box
-		PShape hull_path = hull_svg.getChild("path_8");
+		PShape hull_path = tank_svg.getChild("c_box");
     Vec2[] vertices = new Vec2[hull_path.getVertexCount()];
 		PVector v;
 		for (int i = 0; i < vertices.length; ++i) {
@@ -50,8 +68,8 @@ class SPG {
     FixtureDef fd = new FixtureDef();
     fd.shape = sd;
     // Parameters that affect physics
-    fd.density = 100; // corelated to mass
-    fd.friction = 100;  // friction with other meshes
+    fd.density = 10; // corelated to mass
+    fd.friction = 10;  // friction with other meshes
     fd.restitution = 0.2; // bounciness
 
     // Define the body and make it from the shape
@@ -75,9 +93,23 @@ class SPG {
     float a = body.getAngle();
 
     pushMatrix();
+
     translate(pos.x, pos.y);
     rotate(-a);
-		shape(hull_svg, 0, 0);
+    fill(colour.x, colour.y, colour.z);
+
+    // gun first to leave excess behind turret
+    gun.display();
+
+    beginShape();
+    PShape image = tank_svg.getChild("image");
+    PVector v;
+    for (int i = 0; i < image.getVertexCount(); ++i) {
+      v = image.getVertex(i);
+      vertex(v.x, v.y);
+    }
+    endShape();
+
     popMatrix();
 	}
 

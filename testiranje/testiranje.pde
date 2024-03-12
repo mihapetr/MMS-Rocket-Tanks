@@ -15,79 +15,84 @@ Box2DProcessing box2d;
 /*************************** GAME VARS *******************************/
 
 ArrayList<Boundary> boundaries; // A list we'll use to track fixed objects
-ArrayList<Box> boxes; // A list for all of our rectangles
+ArrayList<Projectile> shells; // A list for all of our rectangles
 
 boolean fire = false; // tech. variable for firing logic
 
 // controls:
-final char _fireBtn = ' '; // control button for firing
+final char _fireBtn = ' ';
 final int _rotateLeft = LEFT;
 final int _rotateRight = RIGHT;
 final int _scaleUp = UP;
 final int _scaleDown = DOWN;
+final int _moveRight = 'd';
+final int _moveLeft = 'a';
 
-Vec2 firePosition; // where projectiles spawn
-Vec2 crosshair = new Vec2(30, 15); // initial projectile speed
-float rotateGun = 0;
-final float w = 0.05;  // gun rotation speed
-final float powerStep = 1;  // power modification scale
+float rotateGun = 0f;
+final float w = 0.008;  // gun traverse speed
+final float powerStep = 0.3;  // power modification scale
 float modPower = 0f;
-PVector nCrosshair;
-boolean modMass;
+float moveDir = 0f;
+float maxPower = 50f;
 
-SPG tank;
+SPG tank;   // playable self propelled gun
+SPG tank2;
 
 /*************************** SYSTEM FUNCTIONS *******************************/
 
 void setup() {
+
   size(1200, 600);  // Mihael : za moj ekran trenutno da ne koristim fullScreen()
   // smooth(); // commented to maximize physics calculations
-
-  firePosition = new Vec2(width/5,2*height/3);
 
   // template code for world generation : Box2D
   createWorld();
 
   // Create ArrayLists to hold projectiles
-  boxes = new ArrayList<Box>();
+  shells = new ArrayList<Projectile>();
 
   // ground generation
   createTestFloor();
 
   // defining a new SPG
   DefSPG def = new DefSPG();
-  def.colour = new PVector(0,50,0);
+  def.colour = new PVector(50,10,10);
   def.name = "Pero";
-  def.startPos = new PVector(50,50);
-  def.hull_svg = loadShape("hull.svg");
-  def.gun_svg = loadShape("gun.svg");
+  def.startPos = new PVector(50,400);
+  def.tank_svg = loadShape("hull.svg"); // holds collision box info and display info : children paths c_box, image
 
-  // creating a new SPG
+  // creating first SPG
   tank = new SPG(def);
+
+  def.colour = new PVector(10,10,50);
+  def.startPos = new PVector(1000, 400);
+  // second SPG
+  tank2 = new SPG(def);
+  tank2.gun.direction.rotate(PI);
 }
 
 void draw() {
 
   background(255);
 
-  tank.display();
-
-  myRotate(crosshair, rotateGun * w);
-  nCrosshair = new PVector(crosshair.x, crosshair.y);
-  nCrosshair.normalize();
-  nCrosshair.mult(modPower * powerStep);
-  // !!!! VEC2 NEMA IMPLEMENTIRANE OPERATORE !!!!
-  myAdd(crosshair, nCrosshair);
-  drawGun();
-
   // We must always step through time!
   box2d.step();
 
+  tank.move();
+  tank.gun.aim();   // move gun on command
+  tank.display();
+
+  tank2.display();
+  
+  // to display gun power
+  strokeWeight(10);
+  strokeCap(SQUARE);
+  stroke(tank.gun.power / maxPower * 255, 255 - tank.gun.power / maxPower * 255, 0);
+  line(50,50,50 + 2*tank.gun.power,50);
+  strokeWeight(1);
+
   if (fire) {
-    fire  = false;
-    
-    Box p = new Box(firePosition.x, firePosition.y);
-    boxes.add(p);
+    tank.gun.fire();
   }
 
   // Display all the boundaries
@@ -95,13 +100,13 @@ void draw() {
     wall.display();
   }
 
-  // Display all the boxes
-  for (Box b: boxes) {
+  // Display all the shells
+  for (Projectile b: shells) {
     b.display();
   }
   
-  // Boxes that leave the screen, we delete them
-  removeLostBoxes();
+  // shells that leave the screen, we delete them
+  removeLostShells();
 }
 
 void keyPressed() {
@@ -111,12 +116,20 @@ void keyPressed() {
     fire = true;
   }
 
+  if(key == _moveRight) {
+    moveDir = 1f;
+  }
+
+  if(key == _moveLeft) {
+    moveDir = -1f;
+  }
+
   if(keyCode == _rotateLeft) {
-    rotateGun = 1f;
+    rotateGun = -1f;
   }
 
   if(keyCode == _rotateRight) {
-    rotateGun = -1f;
+    rotateGun = 1f;
   }
 
   if(keyCode == _scaleUp) {
@@ -125,10 +138,6 @@ void keyPressed() {
 
   if(keyCode == _scaleDown) {
     modPower = -1f;
-  }
-
-  if (key == 'm' || key == 'M') {
-    modMass = true;
   }
 }
 
@@ -145,6 +154,10 @@ void keyReleased() {
   if(keyCode == _scaleUp || keyCode == _scaleDown) {
     modPower = 0f;
   }
+
+  if(key == _moveLeft || key == _moveRight) {
+    moveDir = 0f;
+  }
 }
 
 void beginContact(Contact cp) {
@@ -153,11 +166,11 @@ void beginContact(Contact cp) {
   Object o1 = cp.getFixtureA().getBody().getUserData();
   Object o2 = cp.getFixtureB().getBody().getUserData();
 
-  if(o1.getClass() == Box.class) {
-    ((Box)o1).delete = true;
+  if(o1.getClass() == Projectile.class) {
+    ((Projectile)o1).delete = true;
   }
-  if(o2.getClass() == Box.class) {
-    ((Box)o2).delete = true;
+  if(o2.getClass() == Projectile.class) {
+    ((Projectile)o2).delete = true;
   }
 }
 
@@ -185,41 +198,13 @@ void createTestFloor() {
   boundaries.add(new Boundary(width/2, height-50, width, 10));
 }
 
-void removeLostBoxes() {
+void removeLostShells() {
 
   // (note they have to be eed from both the box2d world and our list
-  for (int i = boxes.size()-1; i >= 0; i--) {
-    Box b = boxes.get(i);
+  for (int i = shells.size()-1; i >= 0; i--) {
+    Projectile b = shells.get(i);
     if (b.done()) {
-      boxes.remove(i);
+      shells.remove(i);
     }
   }
-}
-
-// draws the gun
-void drawGun() {
-
-  stroke(255,0,0);
-  noFill();
-  ellipse(firePosition.x, firePosition.y, 10, 10);
-  stroke(0);
-  line(firePosition.x, firePosition.y, firePosition.x + crosshair.x, firePosition.y - crosshair.y);
-
-}
-
-// rotate vector v for angle amount
-void myRotate(Vec2 v, float angle) {
-
-  PVector aux = new PVector(v.x,v.y);
-  aux.rotate(angle);
-  v.x = aux.x;
-  v.y = aux.y;
-}
-
-void myAdd(Vec2 v, PVector p) {
-
-  PVector aux = new PVector(v.x, v.y);
-  aux.add(p);
-  v.x = aux.x;
-  v.y = aux.y;
 }

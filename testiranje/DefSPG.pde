@@ -3,8 +3,7 @@
 class DefSPG {
 
   PVector colour;                  // display color
-  String name;                    // player name
-  PVector startPos;               // pos in screen coordinates
-  PShape hull_svg;    // svg of the hull
-	PShape gun_svg;
+  String name;                     // player name
+  PVector startPos;                // pos in screen coordinates
+  PShape tank_svg;                 // svg of the hull
 }

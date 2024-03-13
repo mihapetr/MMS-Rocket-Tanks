@@ -15,7 +15,8 @@ class SPG {
 
 	// Box2D components
 	Body body;
-  float topSpeed = 10;
+  float topSpeed = 5;
+  boolean onGround = false;
 
 	SPG(DefSPG def) {
 
@@ -40,11 +41,15 @@ class SPG {
     if(body.getLinearVelocity().length() > topSpeed) return;
 
     float a = body.getAngle();
-    PVector right = new PVector(1000, 0);
+    PVector right = new PVector(moveDir * 1000, 0);
+    PVector down = new PVector(0, -200);
     right.rotate(a);
-    Vec2 r = new Vec2(right.x * moveDir, right.y);
+    down.rotate(a);
+    Vec2 r = new Vec2(right.x, right.y);
+    Vec2 d = new Vec2(down.x, down.y);
 
-    body.applyForceToCenter(r);
+    if(moveDir != 0f) body.applyForceToCenter(r);
+    if(onGround) body.applyForceToCenter(d);
   }
 
 	void makeBody() {
@@ -69,7 +74,7 @@ class SPG {
     fd.shape = sd;
     // Parameters that affect physics
     fd.density = 10; // corelated to mass
-    fd.friction = 10;  // friction with other meshes
+    fd.friction = 2;  // friction with other meshes
     fd.restitution = 0.2; // bounciness
 
     // Define the body and make it from the shape

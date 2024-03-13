@@ -35,11 +35,23 @@ class Gun {
     fire  = false;
     
     Vec2 pos = box2d.getBodyPixelCoord(tank.body);
+    float a = tank.body.getAngle();
 
-    Projectile p = new Projectile(pos.x + mountPos.x + direction.x, pos.y + mountPos.y + direction.y);
+    
 
     PVector dir = direction.copy();
+    
+    PVector mPos = mountPos.copy();
+    dir.rotate(-a);
+    mPos.rotate(-a);
+
+    Projectile p = new Projectile(
+      pos.x + mPos.x + dir.x,
+      pos.y + mPos.y + dir.y
+    );
+
     dir.normalize().mult(power);
+
     p.body.setLinearVelocity(new Vec2(dir.x, - dir.y));
     shells.add(p);
   }

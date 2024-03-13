@@ -37,6 +37,8 @@ float maxPower = 50f;
 
 SPG tank;   // playable self propelled gun
 SPG tank2;
+Ground ground;
+Surface surface;
 
 /*************************** SYSTEM FUNCTIONS *******************************/
 
@@ -47,25 +49,31 @@ void setup() {
 
   // template code for world generation : Box2D
   createWorld();
+  //surface = new Surface();
 
   // Create ArrayLists to hold projectiles
   shells = new ArrayList<Projectile>();
 
-  // ground generation
+  // ground generation (deprecated)
   createTestFloor();
+
+  // testing
+  ground = new Ground("ground.svg", new Vec2(0, 200));
 
   // defining a new SPG
   DefSPG def = new DefSPG();
   def.colour = new PVector(50,10,10);
   def.name = "Pero";
-  def.startPos = new PVector(50,400);
+  def.startPos = new PVector(50,500);
   def.tank_svg = loadShape("hull.svg"); // holds collision box info and display info : children paths c_box, image
 
   // creating first SPG
   tank = new SPG(def);
 
+  // change start settings
   def.colour = new PVector(10,10,50);
   def.startPos = new PVector(1000, 400);
+
   // second SPG
   tank2 = new SPG(def);
   tank2.gun.direction.rotate(PI);
@@ -74,6 +82,9 @@ void setup() {
 void draw() {
 
   background(255);
+  //surface.display();
+
+  ground.display();
 
   // We must always step through time!
   box2d.step();
@@ -90,6 +101,7 @@ void draw() {
   stroke(tank.gun.power / maxPower * 255, 255 - tank.gun.power / maxPower * 255, 0);
   line(50,50,50 + 2*tank.gun.power,50);
   strokeWeight(1);
+  stroke(0);
 
   if (fire) {
     tank.gun.fire();
@@ -107,6 +119,8 @@ void draw() {
   
   // shells that leave the screen, we delete them
   removeLostShells();
+
+  
 }
 
 void keyPressed() {
@@ -172,10 +186,26 @@ void beginContact(Contact cp) {
   if(o2.getClass() == Projectile.class) {
     ((Projectile)o2).delete = true;
   }
+
+  if(o1.getClass() == SPG.class && o2.getClass() == Ground.class){
+    ((SPG)o1).onGround = true;
+  }
+  if(o2.getClass() == SPG.class && o1.getClass() == Ground.class){
+    ((SPG)o2).onGround = true;
+  }
 }
 
 void endContact(Contact cp) {
 
+  Object o1 = cp.getFixtureA().getBody().getUserData();
+  Object o2 = cp.getFixtureB().getBody().getUserData();
+
+  if(o1.getClass() == SPG.class && o2.getClass() == Ground.class){
+    ((SPG)o1).onGround = false;
+  }
+  if(o2.getClass() == SPG.class && o1.getClass() == Ground.class){
+    ((SPG)o2).onGround = false;
+  }
 }
 
 /*************************** HELP FUNCTIONS *******************************/
@@ -195,7 +225,7 @@ void createTestFloor() {
 
   boundaries = new ArrayList<Boundary>();
   // Add a bunch of fixed boundaries
-  boundaries.add(new Boundary(width/2, height-50, width, 10));
+  //boundaries.add(new Boundary(width/2, height-50, width, 10));
 }
 
 void removeLostShells() {

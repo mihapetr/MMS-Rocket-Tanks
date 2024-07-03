@@ -32,7 +32,7 @@ class Gun {
 
   void fire() {
 
-    fire  = false;
+    fire = false;
     
     Vec2 pos = box2d.getBodyPixelCoord(tank.body);
     float a = tank.body.getAngle();

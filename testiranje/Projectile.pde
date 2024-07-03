@@ -79,4 +79,12 @@ class Projectile {
     //body.setLinearVelocity(crosshair);  // where user is aiming at the moment
     body.setAngularVelocity(0);
   }
+  
+  float getPositionX(){
+    return (box2d.getBodyPixelCoord(body)).x;
+  }
+  
+  float getPositionY(){
+    return (box2d.getBodyPixelCoord(body)).y;
+  }
 }

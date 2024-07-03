@@ -16,6 +16,7 @@ Box2DProcessing box2d;
 
 ArrayList<Boundary> boundaries; // A list we'll use to track fixed objects
 ArrayList<Projectile> shells; // A list for all of our rectangles
+ArrayList<Explosion> explosions; // A list of all active explosions;
 
 boolean fire = false; // tech. variable for firing logic
 
@@ -42,67 +43,71 @@ int playerTwoScore;
 int turnsPerPlayer = 3;
 int currentTurnNumber;
 boolean gameOver;
-boolean projectileHandled; // not used yet
 boolean tankIsMoving;
 int tankMovementStartTime;
 int tankMovementDuration = 2000;
 int tankMovementsPerPlayer = 4;
 int playerOneTankMovementsLeft;
 int playerTwoTankMovementsLeft;
+int projectileStartTime;
+int projectileMinDuration = 1000;
+boolean projectileIsActive; // active until all explosions and projectiles removed
 
 // button properties
+int universalButtonYValue = 640;
+
 int restartButtonX; // depends on screen width, initialized in setup
 int restartButtonY = 170;
 int restartButtonWidth = 180;
 int restartButtonHeight = 50;
 
 int fireButtonX; // depends on screen width, initialized in setup
-int fireButtonY = 620;
+int fireButtonY = universalButtonYValue;
 int fireButtonWidth = 200;
 int fireButtonHeight = 50;
 
 int rotateLeftButtonX; // depends on screen width, initialized in setup
-int rotateLeftButtonY = 620;
+int rotateLeftButtonY = universalButtonYValue;
 int rotateLeftButtonWidth = 50;
 int rotateLeftButtonHeight = 50;
 
 int rotateRightButtonX; // depends on screen width, initialized in setup
-int rotateRightButtonY = 620;
+int rotateRightButtonY = universalButtonYValue;
 int rotateRightButtonWidth = 50;
 int rotateRightButtonHeight = 50;
 
 int rotateButtonX; // depends on screen width, initialized in setup
-int rotateButtonY = 620;
+int rotateButtonY = universalButtonYValue;
 int rotateButtonWidth = 130;
 int rotateButtonHeight = 50;
 
 int powerButtonX; // depends on screen width, initialized in setup
-int powerButtonY = 620;
+int powerButtonY = universalButtonYValue;
 int powerButtonWidth = 120;
 int powerButtonHeight = 50;
 
 int powerIncreaseButtonX; // depends on screen width, initialized in setup
-int powerIncreaseButtonY = 620;
+int powerIncreaseButtonY = universalButtonYValue;
 int powerIncreaseButtonWidth = 50;
 int powerIncreaseButtonHeight = 50;
 
 int powerDecreaseButtonX; // depends on screen width, initialized in setup
-int powerDecreaseButtonY = 620;
+int powerDecreaseButtonY = universalButtonYValue;
 int powerDecreaseButtonWidth = 50;
 int powerDecreaseButtonHeight = 50;
 
 int moveLeftButtonX; // depends on screen width, initialized in setup
-int moveLeftButtonY = 620;
+int moveLeftButtonY = universalButtonYValue;
 int moveLeftButtonWidth = 50;
 int moveLeftButtonHeight = 50;
 
 int moveRightButtonX; // depends on screen width, initialized in setup
-int moveRightButtonY = 620;
+int moveRightButtonY = universalButtonYValue;
 int moveRightButtonWidth = 50;
 int moveRightButtonHeight = 50;
 
 int moveButtonX; // depends on screen width, initialized in setup
-int moveButtonY = 620;
+int moveButtonY = universalButtonYValue;
 int moveButtonWidth = 100;
 int moveButtonHeight = 50;
 
@@ -120,8 +125,6 @@ void setup() {
 
   initializeGame();
   setupButtonXPositions();
-  
-  
 }
 
 void draw() {
@@ -134,71 +137,32 @@ void draw() {
   // We must always step through time!
   box2d.step();
 
-  if(tankIsMoving){
-    if(millis() - tankMovementStartTime >= tankMovementDuration){
-      tankIsMoving = false;
-    }
-  }
-
-  if(currentPlayer == 1){
-    if(tankIsMoving){
-      tank.move();
-    }
-    tank.gun.aim();   // move gun on command
-  }
-  else if(currentPlayer == 2){
-    if(tankIsMoving){
-      tank2.move();
-    }
-    tank2.gun.aim();
-  }
+  displayExplosions();
   
-  tank.display();
-  tank2.display();
+  displayBoundaries();
   
-  if(gameOver == false){
-    displayGunPowers();
-    displayTurnCounter();
-    displayGunAngle();
-    displayMovesLeft();
-  }
-  else{
-    displayGameOverMessage();
-  }
+  displayAndHandleTanks(); 
   
-  displayPlayerNames();
-  displayScores();
-  displayButtons();
+  displayGUI();
   
-  if (fire){
-    if(currentPlayer == 1) {
-      tank.gun.fire();
-      currentPlayer = 2;
-    }
-    else if(currentPlayer == 2){
-      tank2.gun.fire();
-      currentPlayer = 1;
-    }
-    currentTurnNumber++;
-    if(currentTurnNumber > 2*turnsPerPlayer && projectileHandled == true){
-        gameOver();
-    }
-  }
+  checkForFire();
   
-  // Display all the boundaries
-  for (Boundary wall: boundaries) {
-    wall.display();
-  }
-
-  // Display all the shells
-  for (Projectile b: shells) {
-    b.display();
-  }
+  displayShells();
+  
+  // for testing the impact
+  /*rectMode(CORNER);
+  rect(tank.getPositionX(), tank.getPositionY(), 40, 18);
+  rect(tank2.getPositionX(), tank2.getPositionY(), 40, 12);
+  */
   
   // shells that leave the screen, we delete them
   removeLostShells();
-
   
+  // explosions that reach full width are removed
+  removeFinishedExplosions();
+  
+  // checks for all projectile related actions to be finished and checks for game end
+  endOfTurn();
 }
 
 void keyPressed() {
@@ -259,9 +223,13 @@ void beginContact(Contact cp) {
   Object o2 = cp.getFixtureB().getBody().getUserData();
 
   if(o1.getClass() == Projectile.class) {
+    Explosion e = createExplosion(((Projectile)o2).getPositionX(), ((Projectile)o2).getPositionY(), "test");
+    giveOrTakePoints(e);
     ((Projectile)o1).delete = true;
   }
   if(o2.getClass() == Projectile.class) {
+    Explosion e = createExplosion(((Projectile)o2).getPositionX(), ((Projectile)o2).getPositionY(), "test");
+    giveOrTakePoints(e);
     ((Projectile)o2).delete = true;
   }
 
@@ -286,7 +254,11 @@ void endContact(Contact cp) {
   }
 }
 
-/*************************** HELP FUNCTIONS *******************************/
+Explosion createExplosion(float x, float y, String type){
+  Explosion e = new Explosion(x,y,type);
+  explosions.add(e);
+  return e;
+}
 
 void initializeGame(){
   
@@ -297,6 +269,9 @@ void initializeGame(){
   // Create ArrayLists to hold projectiles
   shells = new ArrayList<Projectile>();
 
+  // Create ArrayLists to hold explosions;
+  explosions = new ArrayList<Explosion>();
+  
   // ground generation (deprecated)
   createTestFloor();
 
@@ -305,9 +280,9 @@ void initializeGame(){
 
   // defining a new SPG
   DefSPG def = new DefSPG();
-  def.colour = new PVector(50,10,10);
+  def.colour = new PVector(10,60,10);
   def.name = "Pero";
-  def.startPos = new PVector(50,500);
+  def.startPos = new PVector(40,500);
   def.tank_svg = loadShape("hull.svg"); // holds collision box info and display info : children paths c_box, image
 
   // creating first SPG
@@ -329,9 +304,9 @@ void initializeGame(){
   currentTurnNumber = 1;
   gameOver = false;
   tankIsMoving = false;
-  playerOneTankMovementsLeft = 4;
-  playerTwoTankMovementsLeft = 4;
-  projectileHandled = true; // wait for everything regarding projectile to finish before proceeding with the game
+  projectileIsActive = false;
+  playerOneTankMovementsLeft = tankMovementsPerPlayer;
+  playerTwoTankMovementsLeft = tankMovementsPerPlayer;
 }
 
 void gameOver(){
@@ -362,7 +337,7 @@ void mousePressed() {
     initializeGame();
   }
   
-  else if (gameOver == false && tankIsMoving == false &&
+  else if (gameOver == false && tankIsMoving == false && projectileIsActive == false &&
       mouseX >= fireButtonX - fireButtonHalfWidth && mouseX <= fireButtonX + fireButtonHalfWidth &&
       mouseY >= fireButtonY - fireButtonHalfHeight && mouseY <= fireButtonY + fireButtonHalfHeight) {
     fire = true;
@@ -433,6 +408,41 @@ void mouseReleased(){
   modPower = 0f;
 }
 
+void displayAndHandleTanks(){
+  
+  if(tankIsMoving){
+    if(millis() - tankMovementStartTime >= tankMovementDuration){
+      tankIsMoving = false;
+    }
+  }
+
+  if(currentPlayer == 1){
+    if(tankIsMoving){
+      tank.move();
+    }
+    tank.gun.aim();   // move gun on command
+  }
+  else if(currentPlayer == 2){
+    if(tankIsMoving){
+      tank2.move();
+    }
+    tank2.gun.aim();
+  }
+  
+  tank.display();
+  tank2.display();
+}
+
+void giveOrTakePoints(Explosion e){
+  if (currentPlayer == 1){
+    println(dist(e.x, e.y, tank.getPositionX(), tank.getPositionY()));
+  }
+  
+  
+}
+
+/*************************** HELP FUNCTIONS *******************************/
+
 void createWorld() {
 
   // Initialize box2d physics and create the world
@@ -449,6 +459,23 @@ void createTestFloor() {
   boundaries = new ArrayList<Boundary>();
   // Add a bunch of fixed boundaries
   //boundaries.add(new Boundary(width/2, height-50, width, 10));
+  
+  //Zvonimir testne boundaries
+  boundaries.add(new Boundary(5, height/2 - 60, 10, 580));
+  boundaries.add(new Boundary(width-5, height/2 - 60, 10, 580));
+  boundaries.add(new Boundary(width/2, height-130, width, 25));
+}
+
+void checkForFire() {
+  if (fire) {
+    projectileIsActive = true;
+    if(currentPlayer == 1) {
+      tank.gun.fire();
+    }
+    else if(currentPlayer == 2){
+      tank2.gun.fire();
+    }
+  }
 }
 
 void removeLostShells() {
@@ -462,7 +489,65 @@ void removeLostShells() {
   }
 }
 
+void removeFinishedExplosions() {
+  
+  for (int i = explosions.size()-1; i >= 0; i--) {
+    Explosion e = explosions.get(i);
+    if (e.done()) {
+      explosions.remove(i);
+    }
+  }
+}
+
+void endOfTurn(){
+  if(explosions.size() == 0 && shells.size() == 0 && projectileIsActive == true){
+    projectileIsActive = false;
+      currentTurnNumber++;
+      if(currentTurnNumber > 2*turnsPerPlayer){
+        gameOver();
+      } 
+      else {
+        if(currentPlayer == 1) {
+          currentPlayer = 2;
+        }
+        else if(currentPlayer == 2){
+          currentPlayer = 1;
+        }
+      }
+  }
+}
+
 /**************************** GUI FUNCTIONS *******************************/
+void displayGUI(){
+  
+  if(gameOver == false){
+    displayGunPowers();
+    displayTurnCounter();
+    displayGunAngle();
+    displayMovesLeft();
+  }
+  else{
+    displayGameOverMessage();
+  }
+  
+  displayPlayerNames();
+  displayScores();
+  displayButtons();
+}
+
+void displayPlayerNames(){
+  
+  textSize(22);
+  
+  fill(currentPlayer == 1 && gameOver == false ? color(255, 0, 0) : color(0));
+  textAlign(LEFT, TOP);
+  text(tank.name, 50, 20); 
+  
+  fill(currentPlayer == 2 && gameOver == false ? color(255, 0, 0) : color(0));
+  textAlign(RIGHT, TOP);
+  text(tank2.name, width-50, 20);
+}
+
 void displayGunPowers(){
   
   // to display gun power line of tank
@@ -477,7 +562,7 @@ void displayGunPowers(){
   strokeWeight(10);
   strokeCap(SQUARE);
   stroke(tank2.gun.power / maxPower * 255, 255 - tank2.gun.power / maxPower * 255, 0);
-  line(width - 150,50,width - 150 + 2*tank2.gun.power,50);
+  line(width - 172,50,width - 172 + 2*tank2.gun.power,50);
   strokeWeight(1);
   stroke(0);
   
@@ -486,20 +571,7 @@ void displayGunPowers(){
   textAlign(LEFT, TOP);
   textSize(14);
   text(int(tank.gun.power*2), 52 + 2*tank.gun.power, 45); 
-  text(int(tank2.gun.power*2), width - 148 + 2*tank2.gun.power, 45); 
-}
-
-void displayPlayerNames(){
-  
-  textSize(22);
-  
-  fill(currentPlayer == 1 && gameOver == false ? color(255, 0, 0) : color(0));
-  textAlign(LEFT, TOP);
-  text(tank.name, 50, 20); 
-  
-  fill(currentPlayer == 2 && gameOver == false ? color(255, 0, 0) : color(0));
-  textAlign(RIGHT, TOP);
-  text(tank2.name, width-50, 20);
+  text(int(tank2.gun.power*2), width - 170 + 2*tank2.gun.power, 45); 
 }
 
 void displayScores(){
@@ -582,6 +654,26 @@ void displayMovesLeft(){
   fill(color(0));
   textAlign(RIGHT, TOP);
   text("moves left: " + playerTwoTankMovementsLeft, width-50, 82);
+}
+
+void displayBoundaries(){
+  
+  for (Boundary wall: boundaries) {
+    wall.display();
+  }
+}
+
+void displayExplosions(){
+  
+  for (Explosion e: explosions){
+    e.display();
+  }
+}
+
+void displayShells() {
+  for (Projectile b: shells) {
+    b.display();
+  }
 }
 
 void setupButtonXPositions(){

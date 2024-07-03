@@ -117,6 +117,13 @@ class SPG {
 
     popMatrix();
 	}
-
+  
+  float getPositionX(){
+    return (box2d.getBodyPixelCoord(body)).x;
+  }
+  
+  float getPositionY(){
+    return (box2d.getBodyPixelCoord(body)).y;
+  }
 
 }

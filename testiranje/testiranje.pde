@@ -17,6 +17,8 @@ Box2DProcessing box2d;
 ArrayList<Boundary> boundaries; // A list we'll use to track fixed objects
 ArrayList<Projectile> shells; // A list for all of our rectangles
 ArrayList<Explosion> explosions; // A list of all active explosions;
+ArrayList<PVector> scoreTextPositions = new ArrayList<PVector>(); // ArrayList to store positions
+ArrayList<String> scoreTextMessages = new ArrayList<String>(); // ArrayList to store messages
 
 boolean fire = false; // tech. variable for firing logic
 
@@ -40,7 +42,7 @@ float maxPower = 50f;
 int currentPlayer; // 1 for the first player, 2 for the second player
 int playerOneScore;
 int playerTwoScore;
-int turnsPerPlayer = 3;
+int turnsPerPlayer = 5;
 int currentTurnNumber;
 boolean gameOver;
 boolean tankIsMoving;
@@ -54,7 +56,7 @@ int projectileMinDuration = 1000;
 boolean projectileIsActive; // active until all explosions and projectiles removed
 
 // button properties
-int universalButtonYValue = 640;
+int universalButtonYValue = 630;
 
 int restartButtonX; // depends on screen width, initialized in setup
 int restartButtonY = 170;
@@ -111,6 +113,18 @@ int moveButtonY = universalButtonYValue;
 int moveButtonWidth = 100;
 int moveButtonHeight = 50;
 
+// Collision categories (bits)
+public static final short CATEGORY_EXPLOSION = 0x0001;  // Bit 0
+public static final short CATEGORY_SPG = 0x0002;        // Bit 1
+
+// Collision masks
+public static final short MASK_EXPLOSION = CATEGORY_SPG; // Collide only with SPG
+public static final short MASK_SPG = -1;                // Collide with everything (default)
+
+// Group index (optional, usually set to zero unless needed)
+public static final short GROUP_INDEX_EXPLOSION = 0;
+public static final short GROUP_INDEX_SPG = 0;
+
 SPG tank;   // playable self propelled gun
 SPG tank2;
 Ground ground;
@@ -129,7 +143,7 @@ void setup() {
 
 void draw() {
 
-  background(255);
+  background(135, 206, 235);
   //surface.display();
 
   ground.display();
@@ -149,11 +163,9 @@ void draw() {
   
   displayShells();
   
-  // for testing the impact
-  /*rectMode(CORNER);
-  rect(tank.getPositionX(), tank.getPositionY(), 40, 18);
-  rect(tank2.getPositionX(), tank2.getPositionY(), 40, 12);
-  */
+  displayScoringMessages();
+  
+  flipTankToTheRightSide();
   
   // shells that leave the screen, we delete them
   removeLostShells();
@@ -165,6 +177,7 @@ void draw() {
   endOfTurn();
 }
 
+/*
 void keyPressed() {
 
   // shoot if fire button pressed
@@ -215,6 +228,7 @@ void keyReleased() {
     moveDir = 0f;
   }
 }
+*/
 
 void beginContact(Contact cp) {
 
@@ -222,14 +236,10 @@ void beginContact(Contact cp) {
   Object o1 = cp.getFixtureA().getBody().getUserData();
   Object o2 = cp.getFixtureB().getBody().getUserData();
 
-  if(o1.getClass() == Projectile.class) {
-    Explosion e = createExplosion(((Projectile)o2).getPositionX(), ((Projectile)o2).getPositionY(), "test");
-    giveOrTakePoints(e);
+  if(o1.getClass() == Projectile.class && (o2.getClass() == Ground.class || o2.getClass() == Boundary.class || o2.getClass() == SPG.class)) {
     ((Projectile)o1).delete = true;
   }
-  if(o2.getClass() == Projectile.class) {
-    Explosion e = createExplosion(((Projectile)o2).getPositionX(), ((Projectile)o2).getPositionY(), "test");
-    giveOrTakePoints(e);
+  if(o2.getClass() == Projectile.class && (o1.getClass() == Ground.class || o1.getClass() == Boundary.class || o1.getClass() == SPG.class)) {
     ((Projectile)o2).delete = true;
   }
 
@@ -239,6 +249,18 @@ void beginContact(Contact cp) {
   if(o2.getClass() == SPG.class && o1.getClass() == Ground.class){
     ((SPG)o2).onGround = true;
   }
+  
+  if(o1.getClass() == Explosion.class && o2.getClass() == SPG.class){
+    Explosion e = (Explosion) o1;
+    SPG spg = (SPG) o2;
+    adjustScores(e, spg);
+  }
+  if(o2.getClass() == Explosion.class && o1.getClass() == SPG.class){
+    Explosion e = (Explosion) o2;
+    SPG spg = (SPG) o1;
+    adjustScores(e, spg);
+  }
+  
 }
 
 void endContact(Contact cp) {
@@ -254,10 +276,9 @@ void endContact(Contact cp) {
   }
 }
 
-Explosion createExplosion(float x, float y, String type){
+void createExplosion(float x, float y, String type){
   Explosion e = new Explosion(x,y,type);
   explosions.add(e);
-  return e;
 }
 
 void initializeGame(){
@@ -282,7 +303,7 @@ void initializeGame(){
   DefSPG def = new DefSPG();
   def.colour = new PVector(10,60,10);
   def.name = "Pero";
-  def.startPos = new PVector(40,500);
+  def.startPos = new PVector(130,500);
   def.tank_svg = loadShape("hull.svg"); // holds collision box info and display info : children paths c_box, image
 
   // creating first SPG
@@ -290,8 +311,8 @@ void initializeGame(){
 
   // change start settings
   def.colour = new PVector(10,10,50);
-  def.startPos = new PVector(1000, 400);
-  def.name = "Igaly";
+  def.startPos = new PVector(1070, 400);
+  def.name = "Marko";
 
   // second SPG
   tank2 = new SPG(def);
@@ -299,7 +320,7 @@ void initializeGame(){
   
   // initialize players
   playerOneScore = 0;
-  playerTwoScore = 1;
+  playerTwoScore = 0;
   currentPlayer = int(random(1, 3)); // randomly choose 1 or 2
   currentTurnNumber = 1;
   gameOver = false;
@@ -433,12 +454,42 @@ void displayAndHandleTanks(){
   tank2.display();
 }
 
-void giveOrTakePoints(Explosion e){
-  if (currentPlayer == 1){
-    println(dist(e.x, e.y, tank.getPositionX(), tank.getPositionY()));
-  }
+void adjustScores(Explosion e, SPG spg){
   
+  if(currentPlayer == 1){
+      if(spg == tank && e.scoredTank == false){
+        int score = int( -(1 - e.currentWidth/e.maxWidth) * 100);
+        playerOneScore += score;
+        e.scoredTank = true;
+        addScoreMessage(score, new PVector(tank.getPositionX(), tank.getPositionY() - 15));
+      }
+      if(spg == tank2 && e.scoredTank2 == false){
+        int score = int( (1 - e.currentWidth/e.maxWidth) * 100);
+        playerOneScore += score;
+        e.scoredTank2 = true;
+        addScoreMessage(score, new PVector(tank2.getPositionX(), tank2.getPositionY() - 15));
+      }
+    }
+    else if (currentPlayer == 2){
+      if(spg == tank && e.scoredTank == false){
+        int score = int( (1 - e.currentWidth/e.maxWidth) * 100);
+        playerTwoScore += score;
+        e.scoredTank = true;
+        addScoreMessage(score, new PVector(tank.getPositionX(), tank.getPositionY() - 15));
+      }
+      if(spg == tank2 && e.scoredTank2 == false){
+        int score = int( -(1 - e.currentWidth/e.maxWidth) * 100);
+        playerTwoScore += score;
+        e.scoredTank2 = true;
+        addScoreMessage(score, new PVector(tank2.getPositionX(), tank2.getPositionY() - 15));
+      }
+    } 
+}
+
+void addScoreMessage(int score, PVector pos){
   
+  scoreTextPositions.add(pos);
+  scoreTextMessages.add(Integer.toString(score));
 }
 
 /*************************** HELP FUNCTIONS *******************************/
@@ -463,7 +514,10 @@ void createTestFloor() {
   //Zvonimir testne boundaries
   boundaries.add(new Boundary(5, height/2 - 60, 10, 580));
   boundaries.add(new Boundary(width-5, height/2 - 60, 10, 580));
-  boundaries.add(new Boundary(width/2, height-130, width, 25));
+  
+  //boundaries.add(new Boundary(width/2, height-130, width, 25));
+  
+  boundaries.add(new Boundary(width/2, height-65, width, 150));
 }
 
 void checkForFire() {
@@ -497,6 +551,19 @@ void removeFinishedExplosions() {
       explosions.remove(i);
     }
   }
+}
+
+void flipTankToTheRightSide(){
+  if ((degrees(tank.body.getAngle()) > 100 || degrees(tank.body.getAngle()) < -100) && projectileIsActive == false && tank.onGround == true){
+    tank.body.setTransform(new Vec2(tank.body.getPosition().x - 3, tank.body.getPosition().y + 6), 0);
+    tank.body.setLinearVelocity(new Vec2(0, 0)); // Set linear velocity to zero
+    tank.body.setAngularVelocity(0); // Set angular velocity to zero
+  } 
+  if ((degrees(tank2.body.getAngle()) > 100 || degrees(tank2.body.getAngle()) < -100) && projectileIsActive == false && tank2.onGround == true){
+    tank2.body.setTransform(new Vec2(tank2.body.getPosition().x - 3, tank2.body.getPosition().y + 6), 0);
+    tank2.body.setLinearVelocity(new Vec2(0, 0)); // Set linear velocity to zero
+    tank2.body.setAngularVelocity(0); // Set angular velocity to zero
+  } 
 }
 
 void endOfTurn(){
@@ -603,7 +670,7 @@ void displayGameOverMessage(){
   fill(0);
   textAlign(CENTER, TOP);
   if(playerOneScore > playerTwoScore){
-    text(tank.name + "WINS!", width/2, 100);
+    text(tank.name + " WINS!", width/2, 100);
   }
   else if(playerOneScore < playerTwoScore){
     text(tank2.name + " WINS!", width/2, 100);
@@ -673,6 +740,24 @@ void displayExplosions(){
 void displayShells() {
   for (Projectile b: shells) {
     b.display();
+  }
+}
+
+void displayScoringMessages(){
+  for (int i = scoreTextPositions.size() - 1; i >= 0; i--) {
+    textSize(16);
+    fill(0); // Set fill color
+    textAlign(CENTER, CENTER); // Center align text
+    
+    text(scoreTextMessages.get(i), scoreTextPositions.get(i).x, scoreTextPositions.get(i).y);
+    
+    scoreTextPositions.get(i).y -= 1; 
+    
+    // Reset position if it moves off-screen
+    if (scoreTextPositions.get(i).y > height + 20) {
+      scoreTextPositions.remove(i);
+      scoreTextMessages.remove(i);
+    }
   }
 }
 

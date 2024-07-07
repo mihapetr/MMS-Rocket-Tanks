@@ -76,6 +76,11 @@ class SPG {
     fd.density = 10; // corelated to mass
     fd.friction = 2;  // friction with other meshes
     fd.restitution = 0.2; // bounciness
+    
+    // Set collision filtering for SPG
+    fd.filter.categoryBits = CATEGORY_SPG;
+    fd.filter.maskBits = MASK_SPG;
+    fd.filter.groupIndex = GROUP_INDEX_SPG;
 
     // Define the body and make it from the shape
     BodyDef bd = new BodyDef();

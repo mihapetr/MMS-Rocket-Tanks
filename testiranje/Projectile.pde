@@ -16,9 +16,14 @@ class Projectile {
     body.setUserData(this); // vidi u Box2D_notes.md
   }
 
-  // This function removes the particle from the box2d world
+  // This function removes the particle from the box2d world and starts an explosion
   void killBody() {
+    Vec2 pos = box2d.getBodyPixelCoord(body);
+    
     box2d.destroyBody(body);
+    
+    // When the projectile is removed, explosion is created, assertion errors occur otherwise
+    createExplosion(pos.x, pos.y, "test");
   }
 
   // Is the particle ready for deletion?

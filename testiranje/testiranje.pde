@@ -130,19 +130,37 @@ SPG tank2;
 Ground ground;
 Surface surface;
 
+// Main Menu
+PImage backgroundImg;
+boolean inMenu;
+
+int playButtonX; // depends on screen width, initialized in setup
+int playButtonY;
+int playButtonWidth = 250;
+int playButtonHeight = 100;
+
+int exitButtonX; // depends on screen width, initialized in setup
+int exitButtonY;
+int exitButtonWidth = 250;
+int exitButtonHeight = 100;
+
 /*************************** SYSTEM FUNCTIONS *******************************/
 
 void setup() {
 
   size(1300, 700);  // Mihael : za moj ekran trenutno da ne koristim fullScreen()
   // smooth(); // commented to maximize physics calculations
-
-  initializeGame();
-  setupButtonXPositions();
+  
+  menuSetup();
+  
 }
 
 void draw() {
-
+  if(inMenu){
+    displayMenu();
+    return;
+  }
+  
   background(135, 206, 235);
   //surface.display();
 
@@ -176,6 +194,9 @@ void draw() {
   // checks for all projectile related actions to be finished and checks for game end
   endOfTurn();
 }
+
+
+// keyboard controls for easier testing
 
 /*
 void keyPressed() {
@@ -276,9 +297,14 @@ void endContact(Contact cp) {
   }
 }
 
-void createExplosion(float x, float y, String type){
-  Explosion e = new Explosion(x,y,type);
-  explosions.add(e);
+void menuSetup(){
+  backgroundImg = loadImage("menuBackground.png");  
+  inMenu = true;
+  playButtonX = width/2;
+  playButtonY = height/2;
+  exitButtonX = width/2;
+  exitButtonY = playButtonY + playButtonHeight + 20;
+  
 }
 
 void initializeGame(){
@@ -302,7 +328,7 @@ void initializeGame(){
   // defining a new SPG
   DefSPG def = new DefSPG();
   def.colour = new PVector(10,60,10);
-  def.name = "Pero";
+  def.name = "Player1";
   def.startPos = new PVector(130,500);
   def.tank_svg = loadShape("hull.svg"); // holds collision box info and display info : children paths c_box, image
 
@@ -311,8 +337,8 @@ void initializeGame(){
 
   // change start settings
   def.colour = new PVector(10,10,50);
-  def.startPos = new PVector(1070, 400);
-  def.name = "Marko";
+  def.startPos = new PVector(1070, 500);
+  def.name = "Player2";
 
   // second SPG
   tank2 = new SPG(def);
@@ -328,6 +354,11 @@ void initializeGame(){
   projectileIsActive = false;
   playerOneTankMovementsLeft = tankMovementsPerPlayer;
   playerTwoTankMovementsLeft = tankMovementsPerPlayer;
+}
+
+void createExplosion(float x, float y, String type){
+  Explosion e = new Explosion(x,y,type);
+  explosions.add(e);
 }
 
 void gameOver(){
@@ -352,43 +383,48 @@ void mousePressed() {
   float moveRightButtonHalfWidth = moveRightButtonWidth / 2.0;
   float moveRightButtonHalfHeight = moveRightButtonHeight / 2.0;
   
-  if (gameOver == true &&
+  float playButtonHalfWidth = playButtonWidth / 2.0;
+  float playButtonHalfHeight = playButtonHeight / 2.0;
+  float exitButtonHalfWidth = exitButtonWidth / 2.0;
+  float exitButtonHalfHeight = exitButtonHeight / 2.0;
+  
+  if (gameOver == true && inMenu == false &&
       mouseX >= restartButtonX - restartButtonHalfWidth && mouseX <= restartButtonX + restartButtonHalfWidth &&
       mouseY >= restartButtonY - restartButtonHalfHeight && mouseY <= restartButtonY + restartButtonHalfHeight) {
     initializeGame();
   }
   
-  else if (gameOver == false && tankIsMoving == false && projectileIsActive == false &&
+  else if (gameOver == false && tankIsMoving == false && projectileIsActive == false && inMenu == false &&
       mouseX >= fireButtonX - fireButtonHalfWidth && mouseX <= fireButtonX + fireButtonHalfWidth &&
       mouseY >= fireButtonY - fireButtonHalfHeight && mouseY <= fireButtonY + fireButtonHalfHeight) {
     fire = true;
   }
   
-  else if (gameOver == false &&
+  else if (gameOver == false && inMenu == false &&
       mouseX >= rotateLeftButtonX - rotateLeftButtonHalfWidth && mouseX <= rotateLeftButtonX + rotateLeftButtonHalfWidth &&
       mouseY >= rotateLeftButtonY - rotateLeftButtonHalfHeight && mouseY <= rotateLeftButtonY + rotateLeftButtonHalfHeight) {
     rotateGun = -1f;
   }
   
-  else if (gameOver == false &&
+  else if (gameOver == false && inMenu == false &&
       mouseX >= rotateRightButtonX - rotateRightButtonHalfWidth && mouseX <= rotateRightButtonX + rotateRightButtonHalfWidth &&
       mouseY >= rotateRightButtonY - rotateRightButtonHalfHeight && mouseY <= rotateRightButtonY + rotateRightButtonHalfHeight) {
     rotateGun = 1f;
   }
   
-  else if (gameOver == false &&
+  else if (gameOver == false && inMenu == false &&
       mouseX >= powerIncreaseButtonX - powerIncreaseButtonHalfWidth && mouseX <= powerIncreaseButtonX + powerIncreaseButtonHalfWidth &&
       mouseY >= powerIncreaseButtonY - powerIncreaseButtonHalfHeight && mouseY <= powerIncreaseButtonY + powerIncreaseButtonHalfHeight) {
     modPower = 1f;
   }
   
-  else if (gameOver == false &&
+  else if (gameOver == false && inMenu == false &&
       mouseX >= powerDecreaseButtonX - powerDecreaseButtonHalfWidth && mouseX <= powerDecreaseButtonX + powerDecreaseButtonHalfWidth &&
       mouseY >= powerDecreaseButtonY - powerDecreaseButtonHalfHeight && mouseY <= powerDecreaseButtonY + powerDecreaseButtonHalfHeight) {
     modPower = -1f;
   }
   
-  else if (gameOver == false && tankIsMoving == false &&
+  else if (gameOver == false && tankIsMoving == false && inMenu == false &&
       mouseX >= moveLeftButtonX - moveLeftButtonHalfWidth && mouseX <= moveLeftButtonX + moveLeftButtonHalfWidth &&
       mouseY >= moveLeftButtonY - moveLeftButtonHalfHeight && mouseY <= moveLeftButtonY + moveLeftButtonHalfHeight) {
     if (currentPlayer == 1 && playerOneTankMovementsLeft > 0) {
@@ -405,7 +441,7 @@ void mousePressed() {
     }
   }
   
-  else if (gameOver == false && tankIsMoving == false &&
+  else if (gameOver == false && tankIsMoving == false && inMenu == false &&
       mouseX >= moveRightButtonX - moveRightButtonHalfWidth && mouseX <= moveRightButtonX + moveRightButtonHalfWidth &&
       mouseY >= moveRightButtonY - moveRightButtonHalfHeight && mouseY <= moveRightButtonY + moveRightButtonHalfHeight) {
     
@@ -421,6 +457,22 @@ void mousePressed() {
       moveDir = 1f;
       tankMovementStartTime = millis();
     }
+  }
+  
+  else if (inMenu && 
+      mouseX >= playButtonX - playButtonHalfWidth && mouseX <= playButtonX + playButtonHalfWidth &&
+      mouseY >= playButtonY - playButtonHalfHeight && mouseY <= playButtonY + playButtonHalfHeight){
+      
+     initializeGame();
+     setupButtonXPositions();
+     inMenu = false;
+  }
+  
+  else if (inMenu &&
+      mouseX >= exitButtonX - exitButtonHalfWidth && mouseX <= exitButtonX + exitButtonHalfWidth &&
+      mouseY >= exitButtonY - exitButtonHalfHeight && mouseY <= exitButtonY + exitButtonHalfHeight){
+      
+      exit();
   }
 }
 
@@ -661,6 +713,14 @@ void displayTurnCounter(){
   fill(0);
   textAlign(CENTER, TOP);
   text("TURN: " + currentTurnNumber + "/" + 2*turnsPerPlayer , width/2, 20);
+  
+  textSize(16);
+  if (currentPlayer == 1){
+    text(tank.name + "'s TURN", width/2, 45);
+  }
+  else if(currentPlayer == 2) {
+    text(tank2.name + "'s TURN", width/2, 45);
+  }
 }
 
 void displayGameOverMessage(){
@@ -820,4 +880,36 @@ void displayButtons(){
   text("\u2190",moveLeftButtonX, moveLeftButtonY, moveLeftButtonWidth, moveLeftButtonHeight);
   text("\u2192",moveRightButtonX, moveRightButtonY, moveRightButtonWidth, moveRightButtonHeight);
   
+}
+
+void displayMenu(){
+  background(255);
+  image(backgroundImg,0,0);
+  displayMenuButtons();
+  
+  fill(color(255, 190, 77));
+  textSize(150);
+  textAlign(CENTER, CENTER);
+  text("ROCKET TANKS", width/2, 160);
+  
+  fill(color(255, 241, 160));
+  textSize(26);
+  textAlign(RIGHT, BOTTOM);
+  text("© Mihael Petrinjak, Zvonimir Vlaić", width-8, height-8);
+}
+
+void displayMenuButtons(){
+  rectMode(CENTER);
+  textSize(72);
+  textAlign(CENTER, CENTER);
+  
+  fill(color(212, 81, 0));
+  rect(playButtonX, playButtonY, playButtonWidth, playButtonHeight);
+  fill(color(255, 241, 41));
+  text("PLAY", playButtonX, playButtonY, playButtonWidth, playButtonHeight);
+  
+  fill(color(212, 81, 0));
+  rect(exitButtonX, exitButtonY, exitButtonWidth, exitButtonHeight);
+  fill(color(255, 241, 41));
+  text("EXIT", exitButtonX, exitButtonY, exitButtonWidth, exitButtonHeight);
 }

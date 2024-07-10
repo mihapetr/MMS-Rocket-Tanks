@@ -7,14 +7,35 @@ class Explosion {
   float currentWidth;
   float x;
   float y;
-  float growthSpeed = 2f;
+  float growthSpeed = 1f;
   String type;
+  color explosionColor;
+  int maxPoints;
   boolean scoredTank = false;
   boolean scoredTank2 = false;
 
   // Constructor
   Explosion(float x, float y, String type) {
-    maxWidth = 250;
+    switch(type) {
+    case "small":
+      maxWidth = 140;
+      explosionColor = color(255, 25, 247, 160);
+      maxPoints = 80;
+      break;
+    case "big":
+      maxWidth = 250;
+      explosionColor = color(255, 212, 23, 160);
+      maxPoints = 60;
+      break;
+    case "triple":
+      maxWidth = 120;
+      explosionColor = color(64, 255, 134, 160);
+      maxPoints = 40;
+      break;
+    default:
+      println("Unknown statement.");
+      break;
+  }
     currentWidth = 1;
     this.x = x;
     this.y = y;
@@ -47,7 +68,7 @@ class Explosion {
     rectMode(CENTER);
     pushMatrix();
     translate(x, y);
-    fill(color(230,30,30, 140));
+    fill(explosionColor);
     stroke(0);
     ellipse(0, 0, currentWidth, currentWidth);
     currentWidth += growthSpeed;

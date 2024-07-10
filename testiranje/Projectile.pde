@@ -23,7 +23,16 @@ class Projectile {
     box2d.destroyBody(body);
     
     // When the projectile is removed, explosion is created, assertion errors occur otherwise
-    createExplosion(pos.x, pos.y, "test");
+    if(selectedWeapon == 1){
+      createExplosion(pos.x, pos.y, "small");
+    } 
+    else if (selectedWeapon == 2){
+      createExplosion(pos.x, pos.y, "big");
+    } 
+    else if (selectedWeapon == 3){
+      createExplosion(pos.x, pos.y, "triple");
+    }
+    
   }
 
   // Is the particle ready for deletion?

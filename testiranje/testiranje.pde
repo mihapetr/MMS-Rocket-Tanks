@@ -54,6 +54,7 @@ int playerTwoTankMovementsLeft;
 int projectileStartTime;
 int projectileMinDuration = 1000;
 boolean projectileIsActive; // active until all explosions and projectiles removed
+int selectedWeapon = 1;
 
 // button properties
 int universalButtonYValue = 630;
@@ -112,6 +113,24 @@ int moveButtonX; // depends on screen width, initialized in setup
 int moveButtonY = universalButtonYValue;
 int moveButtonWidth = 100;
 int moveButtonHeight = 50;
+
+int weapon1ButtonX; // depends on screen width, initialized in setup
+int weapon1ButtonY = universalButtonYValue;
+int weapon1ButtonWidth = 50;
+int weapon1ButtonHeight = 50;
+
+int weapon2ButtonX; // depends on screen width, initialized in setup
+int weapon2ButtonY = universalButtonYValue;
+int weapon2ButtonWidth = 50;
+int weapon2ButtonHeight = 50;
+
+int weapon3ButtonX; // depends on screen width, initialized in setup
+int weapon3ButtonY = universalButtonYValue;
+int weapon3ButtonWidth = 50;
+int weapon3ButtonHeight = 50;
+
+// weapon images
+PImage smallExplosionImg, bigExplosionImg, tripleExplosionImg;
 
 // Collision categories (bits)
 public static final short CATEGORY_EXPLOSION = 0x0001;  // Bit 0
@@ -304,7 +323,6 @@ void menuSetup(){
   playButtonY = height/2;
   exitButtonX = width/2;
   exitButtonY = playButtonY + playButtonHeight + 20;
-  
 }
 
 void initializeGame(){
@@ -354,6 +372,7 @@ void initializeGame(){
   projectileIsActive = false;
   playerOneTankMovementsLeft = tankMovementsPerPlayer;
   playerTwoTankMovementsLeft = tankMovementsPerPlayer;
+  selectedWeapon = 1;
 }
 
 void createExplosion(float x, float y, String type){
@@ -382,6 +401,12 @@ void mousePressed() {
   float moveLeftButtonHalfHeight = moveLeftButtonHeight / 2.0;
   float moveRightButtonHalfWidth = moveRightButtonWidth / 2.0;
   float moveRightButtonHalfHeight = moveRightButtonHeight / 2.0;
+  float weapon1ButtonHalfWidth = weapon1ButtonWidth / 2.0;
+  float weapon1ButtonHalfHeight = weapon1ButtonHeight / 2.0;
+  float weapon2ButtonHalfWidth = weapon2ButtonWidth / 2.0;
+  float weapon2ButtonHalfHeight = weapon2ButtonHeight / 2.0;
+  float weapon3ButtonHalfWidth = weapon3ButtonWidth / 2.0;
+  float weapon3ButtonHalfHeight = weapon3ButtonHeight / 2.0;
   
   float playButtonHalfWidth = playButtonWidth / 2.0;
   float playButtonHalfHeight = playButtonHeight / 2.0;
@@ -459,12 +484,34 @@ void mousePressed() {
     }
   }
   
+  else if (gameOver == false && inMenu == false && projectileIsActive == false &&
+      mouseX >= weapon1ButtonX - weapon1ButtonHalfWidth && mouseX <= weapon1ButtonX + weapon1ButtonHalfWidth &&
+      mouseY >= weapon1ButtonY - weapon1ButtonHalfHeight && mouseY <= weapon1ButtonY + weapon1ButtonHalfHeight) {
+     
+     selectedWeapon = 1;
+  }
+  
+  else if (gameOver == false && inMenu == false && projectileIsActive == false &&
+      mouseX >= weapon2ButtonX - weapon2ButtonHalfWidth && mouseX <= weapon2ButtonX + weapon2ButtonHalfWidth &&
+      mouseY >= weapon2ButtonY - weapon2ButtonHalfHeight && mouseY <= weapon2ButtonY + weapon2ButtonHalfHeight) {
+     
+     selectedWeapon = 2;
+  }
+  
+  else if (gameOver == false && inMenu == false && projectileIsActive == false &&
+      mouseX >= weapon3ButtonX - weapon3ButtonHalfWidth && mouseX <= weapon3ButtonX + weapon3ButtonHalfWidth &&
+      mouseY >= weapon3ButtonY - weapon3ButtonHalfHeight && mouseY <= weapon3ButtonY + weapon3ButtonHalfHeight) {
+     
+     selectedWeapon = 3;
+  }
+  
   else if (inMenu && 
       mouseX >= playButtonX - playButtonHalfWidth && mouseX <= playButtonX + playButtonHalfWidth &&
       mouseY >= playButtonY - playButtonHalfHeight && mouseY <= playButtonY + playButtonHalfHeight){
       
      initializeGame();
      setupButtonXPositions();
+     loadWeaponImages();
      inMenu = false;
   }
   
@@ -507,16 +554,15 @@ void displayAndHandleTanks(){
 }
 
 void adjustScores(Explosion e, SPG spg){
-  
   if(currentPlayer == 1){
       if(spg == tank && e.scoredTank == false){
-        int score = int( -(1 - e.currentWidth/e.maxWidth) * 100);
+        int score = int( -(1 - e.currentWidth/e.maxWidth) * e.maxPoints);
         playerOneScore += score;
         e.scoredTank = true;
         addScoreMessage(score, new PVector(tank.getPositionX(), tank.getPositionY() - 15));
       }
       if(spg == tank2 && e.scoredTank2 == false){
-        int score = int( (1 - e.currentWidth/e.maxWidth) * 100);
+        int score = int( (1 - e.currentWidth/e.maxWidth) * e.maxPoints);
         playerOneScore += score;
         e.scoredTank2 = true;
         addScoreMessage(score, new PVector(tank2.getPositionX(), tank2.getPositionY() - 15));
@@ -524,13 +570,13 @@ void adjustScores(Explosion e, SPG spg){
     }
     else if (currentPlayer == 2){
       if(spg == tank && e.scoredTank == false){
-        int score = int( (1 - e.currentWidth/e.maxWidth) * 100);
+        int score = int( (1 - e.currentWidth/e.maxWidth) * e.maxPoints);
         playerTwoScore += score;
         e.scoredTank = true;
         addScoreMessage(score, new PVector(tank.getPositionX(), tank.getPositionY() - 15));
       }
       if(spg == tank2 && e.scoredTank2 == false){
-        int score = int( -(1 - e.currentWidth/e.maxWidth) * 100);
+        int score = int( -(1 - e.currentWidth/e.maxWidth) * e.maxPoints);
         playerTwoScore += score;
         e.scoredTank2 = true;
         addScoreMessage(score, new PVector(tank2.getPositionX(), tank2.getPositionY() - 15));
@@ -836,6 +882,10 @@ void setupButtonXPositions(){
   powerButtonX = width/2 - fireButtonWidth/2 - powerIncreaseButtonWidth - powerDecreaseButtonWidth - powerButtonWidth/2 - 25;
   powerIncreaseButtonX = width/2 - fireButtonWidth/2 - powerDecreaseButtonWidth - powerIncreaseButtonWidth/2 - 20;
   powerDecreaseButtonX = width/2 - fireButtonWidth/2  - powerDecreaseButtonWidth/2 - 15;
+  
+  weapon1ButtonX = moveRightButtonX + moveRightButtonWidth + 35;
+  weapon2ButtonX = weapon1ButtonX + weapon1ButtonWidth + 15;
+  weapon3ButtonX = weapon2ButtonX + weapon2ButtonWidth + 15;
 }
 
 void displayButtons(){
@@ -870,7 +920,7 @@ void displayButtons(){
   text("POWER",powerButtonX, powerButtonY, powerButtonWidth, powerButtonHeight);
   text("-",powerDecreaseButtonX, powerDecreaseButtonY, powerDecreaseButtonWidth, powerDecreaseButtonHeight);
   
-  //move buttons
+  // move buttons
   fill(color(0, 33, 179));
   rect(moveButtonX, moveButtonY, moveButtonWidth, moveButtonHeight);
   rect(moveLeftButtonX, moveLeftButtonY, moveLeftButtonWidth, moveLeftButtonHeight);
@@ -880,6 +930,21 @@ void displayButtons(){
   text("\u2190",moveLeftButtonX, moveLeftButtonY, moveLeftButtonWidth, moveLeftButtonHeight);
   text("\u2192",moveRightButtonX, moveRightButtonY, moveRightButtonWidth, moveRightButtonHeight);
   
+  // weapon buttons
+  fill(color(219, 168, 0));
+  if(selectedWeapon == 1) {
+    rect(weapon1ButtonX, weapon1ButtonY, weapon1ButtonWidth, weapon1ButtonHeight);
+  }
+  else if (selectedWeapon == 2) {
+    rect(weapon2ButtonX, weapon2ButtonY, weapon2ButtonWidth, weapon2ButtonHeight);
+  }
+  else if (selectedWeapon == 3){
+    rect(weapon3ButtonX, weapon3ButtonY, weapon3ButtonWidth, weapon3ButtonHeight);
+  }
+  imageMode(CENTER);
+  image(smallExplosionImg, weapon1ButtonX, weapon1ButtonY);
+  image(bigExplosionImg, weapon2ButtonX, weapon2ButtonY);
+  image(tripleExplosionImg, weapon3ButtonX, weapon3ButtonY);
 }
 
 void displayMenu(){
@@ -912,4 +977,13 @@ void displayMenuButtons(){
   rect(exitButtonX, exitButtonY, exitButtonWidth, exitButtonHeight);
   fill(color(255, 241, 41));
   text("EXIT", exitButtonX, exitButtonY, exitButtonWidth, exitButtonHeight);
+}
+
+void loadWeaponImages(){
+  smallExplosionImg = loadImage("small-explosion.png");
+  bigExplosionImg = loadImage("big-explosion.png"); 
+  tripleExplosionImg = loadImage("triple-explosion.png");
+  smallExplosionImg.resize(50,50);
+  bigExplosionImg.resize(50,50);
+  tripleExplosionImg.resize(50,50);
 }

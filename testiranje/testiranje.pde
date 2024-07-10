@@ -9,6 +9,10 @@ import org.jbox2d.common.*;
 import org.jbox2d.dynamics.*;
 import org.jbox2d.dynamics.contacts.*;
 
+
+/***************************** SOUND *********************************/
+import ddf.minim.*;
+
 // A reference to our box2d world
 Box2DProcessing box2d;
 
@@ -19,6 +23,11 @@ ArrayList<Projectile> shells; // A list for all of our rectangles
 ArrayList<Explosion> explosions; // A list of all active explosions;
 ArrayList<PVector> scoreTextPositions = new ArrayList<PVector>(); // ArrayList to store positions
 ArrayList<String> scoreTextMessages = new ArrayList<String>(); // ArrayList to store messages
+
+Minim minim;
+AudioPlayer backgroundMusicPlayer;
+AudioSample explosionPlayer, firePlayer, movePlayer;
+
 
 boolean fire = false; // tech. variable for firing logic
 
@@ -172,6 +181,11 @@ void setup() {
   
   menuSetup();
   
+  minim = new Minim(this); 
+  backgroundMusicPlayer = minim.loadFile("tank-music.mp3");
+  explosionPlayer = minim.loadSample("explosion.wav");
+  firePlayer = minim.loadSample("fire.wav");
+  movePlayer = minim.loadSample("moving.wav");
 }
 
 void draw() {
@@ -373,11 +387,17 @@ void initializeGame(){
   playerOneTankMovementsLeft = tankMovementsPerPlayer;
   playerTwoTankMovementsLeft = tankMovementsPerPlayer;
   selectedWeapon = 1;
+  
+  // music
+  backgroundMusicPlayer.loop();
 }
+
+
 
 void createExplosion(float x, float y, String type){
   Explosion e = new Explosion(x,y,type);
   explosions.add(e);
+  explosionPlayer.trigger();
 }
 
 void gameOver(){
@@ -457,12 +477,14 @@ void mousePressed() {
       tankIsMoving = true;
       tankMovementStartTime = millis();
       moveDir = -1f;
+      movePlayer.trigger();
     }
     else if (currentPlayer == 2 && playerOneTankMovementsLeft > 0) {
       playerTwoTankMovementsLeft --;
       tankIsMoving = true;
-      tankMovementStartTime = millis();
       moveDir = -1f;
+      movePlayer.trigger();
+      tankMovementStartTime = millis();
     }
   }
   
@@ -474,12 +496,14 @@ void mousePressed() {
       playerOneTankMovementsLeft --;
       tankIsMoving = true;
       moveDir = 1f;
+      movePlayer.trigger();
       tankMovementStartTime = millis();
     }
     else if (currentPlayer == 2 && playerTwoTankMovementsLeft > 0) {
       playerTwoTankMovementsLeft --;
       tankIsMoving = true;
       moveDir = 1f;
+      movePlayer.trigger();
       tankMovementStartTime = millis();
     }
   }
@@ -627,6 +651,7 @@ void checkForFire() {
     else if(currentPlayer == 2){
       tank2.gun.fire();
     }
+    firePlayer.trigger();
   }
 }
 

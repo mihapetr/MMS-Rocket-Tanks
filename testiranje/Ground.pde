@@ -37,11 +37,11 @@ class Ground {
     endShape();
 
     // for control
-    for (int i = 0; i < c_box.getVertexCount(); ++i) {
+    /*for (int i = 0; i < c_box.getVertexCount(); ++i) {
       v = c_box.getVertex(i);
       fill(255 * i / c_box.getVertexCount(), 0, 0);
       ellipse(origin.x + v.x, origin.y + v.y, 5, 5);
-    }
+    }*/
   }
 
   void makeBody() {

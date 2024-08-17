@@ -1,5 +1,7 @@
 # RocketTanks
-Završni za MMS.
+Završni za MMS. 
+
+[Dokumentacija](dokumentacija.pdf)
 
 ## Generalne informacije
 Projekt je inspiriran igricom [Pocket Tanks](https://www.blitwise.com/pocket-tanks).
